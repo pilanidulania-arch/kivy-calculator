@@ -32,7 +32,10 @@ jobs:
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
 
+          # Accept all licenses
           yes | sdkmanager --licenses
+
+          # Install only stable tools
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
 
       - name: Build APK
