@@ -6,7 +6,23 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest- name: Setup Android SDK
+  run: |
+    wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+    mkdir -p $HOME/android-sdk/cmdline-tools/latest
+    unzip cmdline-tools.zip -d $HOME/android-sdk/cmdline-tools/tmp
+    mv $HOME/android-sdk/cmdline-tools/tmp/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/
+    rm -rf $HOME/android-sdk/cmdline-tools/tmp
+
+    export ANDROID_SDK_ROOT=$HOME/android-sdk
+    export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+
+    # Accept licenses
+    yes | sdkmanager --licenses
+
+    # ONLY stable versions
+    sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+  
 
     steps:
       # Checkout code
