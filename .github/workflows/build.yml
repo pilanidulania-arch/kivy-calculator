@@ -6,7 +6,58 @@ on:
 
 jobs:
   build:
+    runs-on: name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
     runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y python3-pip build-essential git zip unzip openjdk-17-jdk wget curl
+
+      - name: Install Buildozer & Cython
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython
+
+      - name: Setup Android SDK (Stable Only)
+        run: |
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+          mkdir -p $HOME/android-sdk/cmdline-tools/latest
+          unzip cmdline-tools.zip -d $HOME/android-sdk/cmdline-tools/tmp
+          mv $HOME/android-sdk/cmdline-tools/tmp/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/
+          rm -rf $HOME/android-sdk/cmdline-tools/tmp
+
+          export ANDROID_SDK_ROOT=$HOME/android-sdk
+          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+
+          # Accept all licenses
+          yes | sdkmanager --licenses
+
+          # Install ONLY stable tools
+          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+
+      - name: Build APK
+        run: |
+          export ANDROIDSDK_BUILD_TOOLS_VERSION=33.0.2
+          export ANDROID_SDK_ROOT=$HOME/android-sdk
+          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+          buildozer android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: bin/*.apkubuntu-latest
 
     steps:
       # 1️⃣ Checkout code
