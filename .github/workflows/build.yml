@@ -11,12 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # 🔥 CLEAN EVERYTHING FIRST
+      # 🔥 Clean everything
       - name: Clean old builds
         run: |
           rm -rf .buildozer
           rm -rf bin
-          rm -rf $HOME/android-sdk
 
       - name: Install dependencies
         run: |
@@ -28,40 +27,20 @@ jobs:
           pip install --upgrade pip
           pip install buildozer==1.5.0 cython==0.29.33
 
-      - name: Setup Android SDK (FIXED)
+      # 🚀 IMPORTANT: Pre-create buildozer SDK config
+      - name: Force Buildozer SDK config
         run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools
-
-          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O tools.zip
-          unzip tools.zip -d $HOME/android-sdk/cmdline-tools
-
-          mv $HOME/android-sdk/cmdline-tools/cmdline-tools $HOME/android-sdk/cmdline-tools/latest
-
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
-          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
-
-          yes | sdkmanager --licenses
-
-          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
-
-      # 🔥 REMOVE ANY RC VERSION (CRITICAL)
-      - name: Remove RC build-tools
-        run: |
-          rm -rf $HOME/android-sdk/build-tools/37*
+          mkdir -p .buildozer/android/platform
+          
+          echo "sdk.dir=$HOME/.buildozer/android/platform/android-sdk" > local.properties
 
       - name: Build APK
         run: |
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
-          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
-
-          # 🔥 HARD FORCE FIX
+          export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
+          
+          # 🔥 FORCE stable tools INSIDE buildozer
           export BUILDOZER_BUILD_TOOLS_VERSION=33.0.2
-          export ANDROIDSDK_BUILD_TOOLS_VERSION=33.0.2
+          export ANDROIDAPI=33
+          export ANDROIDMINAPI=21
 
           buildozer android debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk
-          path: bin/*.apk
