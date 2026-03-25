@@ -8,36 +8,44 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+    env:
+      ANDROID_HOME: /home/runner/android-sdk
 
-    - name: Install system dependencies
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
       run: |
         sudo apt update
         sudo apt install -y python3-pip build-essential git zip unzip openjdk-17-jdk wget
 
-    - name: Install Python dependencies
+    - name: Install Python packages
       run: |
         pip install --upgrade pip
         pip install buildozer cython
 
-    - name: Setup Android SDK & Accept Licenses (FIX)
+    - name: Setup Android SDK (FORCE FIX)
       run: |
-        mkdir -p $HOME/android-sdk/cmdline-tools
-        cd $HOME/android-sdk/cmdline-tools
+        mkdir -p $ANDROID_HOME/cmdline-tools
+        cd $ANDROID_HOME/cmdline-tools
 
         wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O tools.zip
         unzip tools.zip
         mv cmdline-tools latest
 
-        export ANDROID_HOME=$HOME/android-sdk
         export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
 
         yes | sdkmanager --licenses
 
-        sdkmanager "platform-tools" "platforms;android-30" "build-tools;30.0.3"
+        # ✅ ONLY install stable version (IMPORTANT)
+        sdkmanager "platform-tools"
+        sdkmanager "platforms;android-30"
+        sdkmanager "build-tools;30.0.3"
+
+        # ❌ REMOVE BAD VERSION (VERY IMPORTANT)
+        rm -rf $ANDROID_HOME/build-tools/37.*
 
     - name: Build APK
       run: |
+        buildozer android clean
         buildozer android debug
