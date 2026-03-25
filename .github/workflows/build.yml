@@ -14,26 +14,23 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt install -y python3-pip build-essential git zip unzip openjdk-17-jdk wget
+        sudo apt install -y python3-pip build-essential git zip unzip openjdk-17-jdk
 
-    - name: Install Python packages
+    - name: Install Buildozer
       run: |
         pip install --upgrade pip
         pip install buildozer cython
 
-    # 🔥 VERY IMPORTANT STEP (RESET EVERYTHING)
-    - name: Clean old buildozer SDK
+    - name: Clean buildozer cache
       run: |
         rm -rf .buildozer
-        rm -rf ~/.buildozer
         rm -rf /home/runner/.buildozer
 
-    - name: Build APK (Auto License Fix)
+    - name: Force correct API (CRITICAL FIX)
       run: |
-        export BUILDOZER_WARN_ON_ROOT=0
+        export ANDROIDAPI=30
+        export ANDROIDNDKVER=r23b
 
-        # 🔥 FORCE LICENSE ACCEPT INSIDE BUILDOZER
-        mkdir -p ~/.android
-        touch ~/.android/repositories.cfg
-
+    - name: Build APK
+      run: |
         yes | buildozer android debug
