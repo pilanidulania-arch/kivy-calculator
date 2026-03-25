@@ -24,7 +24,7 @@ jobs:
         pip install --upgrade pip
         pip install buildozer cython
 
-    - name: Setup Android SDK (FORCE FIX)
+    - name: Setup Android SDK
       run: |
         mkdir -p $ANDROID_HOME/cmdline-tools
         cd $ANDROID_HOME/cmdline-tools
@@ -37,15 +37,10 @@ jobs:
 
         yes | sdkmanager --licenses
 
-        # ✅ ONLY install stable version (IMPORTANT)
         sdkmanager "platform-tools"
         sdkmanager "platforms;android-30"
         sdkmanager "build-tools;30.0.3"
 
-        # ❌ REMOVE BAD VERSION (VERY IMPORTANT)
-        rm -rf $ANDROID_HOME/build-tools/37.*
-
     - name: Build APK
       run: |
-        buildozer android clean
         buildozer android debug
