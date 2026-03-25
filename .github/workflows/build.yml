@@ -1,38 +1,70 @@
 name: Build APK
 
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y python3-pip build-essential git zip unzip openjdk-17-jdk
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
 
-    - name: Install Buildozer
-      run: |
-        pip install --upgrade pip
-        pip install buildozer cython
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            git zip unzip openjdk-17-jdk python3-pip wget \
+            autoconf automake libtool pkg-config libltdl-dev \
+            zlib1g-dev libncurses5-dev libffi-dev libssl-dev \
+            cmake build-essential
 
-    - name: Clean old build
-      run: |
-        rm -rf .buildozer
-        rm -rf /home/runner/.buildozer
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install "cython==0.29.33" buildozer
 
-    # 🔥 FORCE SPEC FIX
-    - name: Fix buildozer config
-      run: |
-        sed -i 's/android.api = .*/android.api = 30/' buildozer.spec
-        sed -i 's/android.ndk = .*/android.ndk = 23b/' buildozer.spec
-        sed -i 's/android.ndk_api = .*/android.ndk_api = 21/' buildozer.spec
+      - name: Install Android SDK
+        run: |
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip commandlinetools-linux-11076708_latest.zip
+          mv cmdline-tools latest
 
-    - name: Build APK
-      run: |
-        yes | buildozer android debug
+      - name: Fix sdkmanager path (IMPORTANT)
+        run: |
+          mkdir -p $HOME/android-sdk/tools/bin
+          ln -s $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager $HOME/android-sdk/tools/bin/sdkmanager
+
+      - name: Set SDK path
+        run: |
+          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+
+      - name: Install Android build tools
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-31" "build-tools;33.0.2"
+
+      - name: Fix Buildozer SDK path
+        run: |
+          mkdir -p ~/.buildozer/android/platform
+          ln -s $HOME/android-sdk ~/.buildozer/android/platform/android-sdk
+
+      - name: Build APK
+        run: |
+          buildozer -v android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: bin/*.apk
