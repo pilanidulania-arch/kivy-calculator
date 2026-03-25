@@ -21,15 +21,17 @@ jobs:
         pip install --upgrade pip
         pip install buildozer cython
 
-    - name: Clean buildozer cache
+    - name: Clean old build
       run: |
         rm -rf .buildozer
         rm -rf /home/runner/.buildozer
 
-    - name: Force correct API (CRITICAL FIX)
+    # 🔥 FORCE SPEC FIX
+    - name: Fix buildozer config
       run: |
-        export ANDROIDAPI=30
-        export ANDROIDNDKVER=r23b
+        sed -i 's/android.api = .*/android.api = 30/' buildozer.spec
+        sed -i 's/android.ndk = .*/android.ndk = 23b/' buildozer.spec
+        sed -i 's/android.ndk_api = .*/android.ndk_api = 21/' buildozer.spec
 
     - name: Build APK
       run: |
