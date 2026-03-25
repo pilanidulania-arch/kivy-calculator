@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # 🔥 Clean everything
+      # 🔥 Clean old builds
       - name: Clean
         run: |
           rm -rf .buildozer
@@ -23,12 +23,13 @@ jobs:
           sudo apt update
           sudo apt install -y python3-pip build-essential git zip unzip openjdk-17-jdk wget curl
 
-      - name: Install Buildozer
+      - name: Install Python tools
         run: |
+          pip install --upgrade pip
           pip install buildozer==1.5.0 cython==0.29.33
 
-      # 🚀 Install ANDROID SDK MANUALLY
-      - name: Setup Android SDK (manual)
+      # 🚀 Install Android SDK manually
+      - name: Setup Android SDK
         run: |
           mkdir -p $HOME/android-sdk/cmdline-tools
 
@@ -42,22 +43,29 @@ jobs:
 
           yes | sdkmanager --licenses
 
-          # 🔥 ONLY STABLE (NO RC)
+          # 🔥 ONLY stable tools install
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
 
-      # 🚀 FORCE buildozer to use THIS SDK
-      - name: Link SDK to Buildozer
+      # 🔥 Link SDK to Buildozer (IMPORTANT)
+      - name: Link SDK
         run: |
           mkdir -p .buildozer/android/platform
           ln -s $HOME/android-sdk .buildozer/android/platform/android-sdk
+
+      # 🔥 Remove RC versions (CRITICAL FIX)
+      - name: Remove RC build-tools
+        run: |
+          rm -rf $HOME/android-sdk/build-tools/37*
 
       - name: Build APK
         run: |
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
 
-          # 🔥 HARD BLOCK RC
+          # 🔥 FORCE correct version
           export BUILDOZER_BUILD_TOOLS_VERSION=33.0.2
+          export ANDROIDAPI=33
+          export ANDROIDMINAPI=21
 
           buildozer android debug
 
