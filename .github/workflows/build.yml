@@ -8,10 +8,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      ANDROID_HOME: /home/runner/android-sdk
-      ANDROID_SDK_ROOT: /home/runner/android-sdk
-
     steps:
     - uses: actions/checkout@v4
 
@@ -25,29 +21,19 @@ jobs:
         pip install --upgrade pip
         pip install buildozer cython
 
-    - name: Setup Android SDK (FORCE USE SAME SDK)
+    # 🔥 VERY IMPORTANT STEP (RESET EVERYTHING)
+    - name: Clean old buildozer SDK
       run: |
-        mkdir -p $ANDROID_HOME/cmdline-tools
-        cd $ANDROID_HOME/cmdline-tools
+        rm -rf .buildozer
+        rm -rf ~/.buildozer
+        rm -rf /home/runner/.buildozer
 
-        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O tools.zip
-        unzip tools.zip
-        mv cmdline-tools latest
-
-        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
-
-        yes | sdkmanager --licenses
-
-        # ✅ ONLY stable install
-        sdkmanager "platform-tools"
-        sdkmanager "platforms;android-30"
-        sdkmanager "build-tools;30.0.3"
-
-    - name: Force Buildozer to use this SDK (IMPORTANT)
+    - name: Build APK (Auto License Fix)
       run: |
-        buildozer init || true
-        sed -i 's|#android.sdk_path =.*|android.sdk_path = /home/runner/android-sdk|' buildozer.spec
+        export BUILDOZER_WARN_ON_ROOT=0
 
-    - name: Build APK
-      run: |
-        buildozer android debug
+        # 🔥 FORCE LICENSE ACCEPT INSIDE BUILDOZER
+        mkdir -p ~/.android
+        touch ~/.android/repositories.cfg
+
+        yes | buildozer android debug
